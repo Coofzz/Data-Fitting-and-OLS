@@ -1,11 +1,11 @@
 import math
 
-# Tạo ma trận 0 
+# Create a zero matrix
 def mat_zeros(rows, cols):
     return [[0.0] * cols for _ in range(rows)]
 
 
-# Tính ma trận chuyển vị
+# Compute the transpose of a matrix
 def mat_transpose(A):
     rows, cols = len(A), len(A[0])
     AT = mat_zeros(cols, rows)
@@ -14,10 +14,10 @@ def mat_transpose(A):
             AT[j][i] = A[i][j]
     return AT
 
-# Nhân 2 ma trận
+# Multiply two matrices
 def mat_mul(A, B):
     m, n, p = len(A), len(A[0]), len(B[0])
-    assert len(B) == n, "Kích thước không khớp để nhân ma trận."
+    assert len(B) == n, "Dimension mismatch for matrix multiplication."
     C = mat_zeros(m, p)
     for i in range(m):
         for j in range(p):
@@ -25,7 +25,7 @@ def mat_mul(A, B):
                 C[i][j] += A[i][k] * B[k][j]
     return C
 
-# Nhân ma trận với vector
+# Multiply a matrix by a vector
 def mat_vec_mul(A, v):
     m, n = len(A), len(A[0])
     assert len(v) == n
@@ -35,7 +35,7 @@ def mat_vec_mul(A, v):
             result[i] += A[i][j] * v[j]
     return result
 
-# Nghịch đảo ma trận
+# Compute the inverse of a matrix
 def mat_inverse(A):
     n = len(A)
     aug = [A[i][:] + [1.0 if i == j else 0.0 for j in range(n)]
@@ -48,8 +48,8 @@ def mat_inverse(A):
         pivot = aug[col][col]
         if abs(pivot) < 1e-12:
             raise ValueError(
-                f"Ma trận suy biến (singular) tại cột {col}. "
-                "X^T X không khả nghịch "
+                f"Singular matrix at column {col}. "
+                "X^T X is not invertible."
             )
         aug[col] = [x / pivot for x in aug[col]]
 
@@ -63,11 +63,11 @@ def mat_inverse(A):
     return [aug[i][n:] for i in range(n)]
 
 
-# Thêm cột 1 vào đầu X 
+# Prepend a column of ones to X (intercept term)
 def add_intercept(X):
     return [[1.0] + row for row in X]
 
-# Hàm 1: ols_fit
+# Function 1: ols_fit
 def ols_fit(X, y, fit_intercept=True):
     X_design = add_intercept(X) if fit_intercept else [row[:] for row in X]
 
@@ -94,7 +94,7 @@ def ols_fit(X, y, fit_intercept=True):
     rss = sum(r ** 2 for r in residuals)
 
     dof = n - k
-    sigma2 = rss / (n-p-1)
+    sigma2 = rss / (n - p - 1)
 
     return {
         "beta_hat" : beta_hat,
@@ -110,7 +110,7 @@ def ols_fit(X, y, fit_intercept=True):
 
 
 def print_results(result, feature_names=None):
-    print("---------------------Hàm 1---------------------")
+    print("---------------------Function 1---------------------")
     p = result["p"]
     betas = result["beta_hat"]
 
@@ -124,7 +124,7 @@ def print_results(result, feature_names=None):
         print(f"    {name:>12s} = {b:+.6f}")
     print(f"  sigma^2            = {result['sigma2']:.6f}")
 
-# HÀM 2: HAT MATRIX
+# FUNCTION 2: HAT MATRIX
 def mat_identity(n):
     return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
  
@@ -160,7 +160,7 @@ def hat_matrix(X, fit_intercept=True):
  
  
 def print_hat_matrix(result):
-    print("---------------------Hàm 2---------------------")
+    print("---------------------Function 2---------------------")
     H = result["H"]
  
     print("  Hat Matrix H =")
@@ -168,9 +168,9 @@ def print_hat_matrix(result):
         formatted = "  ".join(f"{v:+.4f}" for v in row)
         print(f"    [ {formatted} ]")
     print()
-    print(f"Kiểm tra H^2 = H : {'H thỏa tính chất idempotent' if result['is_idempotent'] else 'H không thỏa tính chất idempotent'}")
+    print(f"Check H^2 = H : {'H satisfies the idempotent property' if result['is_idempotent'] else 'H does not satisfy the idempotent property'}")
 
-# HÀM 3: MODEL METRICS
+# FUNCTION 3: MODEL METRICS
 def model_metrics(y, y_hat, p, n=None):
     if n is None:
         n = len(y)
@@ -205,25 +205,66 @@ def model_metrics(y, y_hat, p, n=None):
  
  
 def print_metrics(result):
-    print("---------------------Hàm 3---------------------")
+    print("---------------------Function 3---------------------")
     print(f"  RSS                : {result['rss']:.6f}")
     print(f"  TSS                : {result['tss']:.6f}")
     print(f"  R²                 : {result['r2']:.6f}")
-    print(f"  R² hiệu chỉnh      : {result['r2_adj']:.6f}")
-    print(f"  Kiểm định F      : {result['f_stat']:.6f}")
+    print(f"  Adjusted R²        : {result['r2_adj']:.6f}")
+    print(f"  F-statistic        : {result['f_stat']:.6f}")
 
 
-# hàm tính p-value và t tới hạn 
+# ── Pure-Python approximation of the t-distribution (no scipy) ─────
+def _regularized_incomplete_beta(x, a, b, max_iter=200, tol=1e-12):
+    if x <= 0: return 0.0
+    if x >= 1: return 1.0
+    if x > (a + 1) / (a + b + 2):
+        return 1.0 - _regularized_incomplete_beta(1 - x, b, a, max_iter, tol)
+    lbeta = math.lgamma(a) + math.lgamma(b) - math.lgamma(a + b)
+    front = math.exp(math.log(x) * a + math.log(1 - x) * b - lbeta) / a
+    f = 1.0; C = 1.0
+    D = 1.0 - (a + b) * x / (a + 1)
+    if abs(D) < 1e-30: D = 1e-30
+    D = 1.0 / D; f = D
+    for m in range(1, max_iter + 1):
+        num = m * (b - m) * x / ((a + 2*m - 1) * (a + 2*m))
+        D = 1 + num * D; C = 1 + num / C
+        if abs(D) < 1e-30: D = 1e-30
+        if abs(C) < 1e-30: C = 1e-30
+        D = 1 / D; f *= C * D
+        num = -(a + m) * (a + b + m) * x / ((a + 2*m) * (a + 2*m + 1))
+        D = 1 + num * D; C = 1 + num / C
+        if abs(D) < 1e-30: D = 1e-30
+        if abs(C) < 1e-30: C = 1e-30
+        D = 1 / D; delta = C * D; f *= delta
+        if abs(delta - 1) < tol: break
+    return front * f
+
+
+def _t_cdf(t_val, df):
+    x = df / (df + t_val ** 2)
+    p = 0.5 * _regularized_incomplete_beta(x, df / 2, 0.5)
+    return p if t_val < 0 else 1 - p
+
+
 def _t_sf(t_val, df):
-    from scipy.stats import t as t_dist
-    return 2 * t_dist.sf(abs(t_val), df)
-
-def _t_ppf(alpha, df):
-    from scipy.stats import t as t_dist
-    return t_dist.ppf(1 - alpha, df)
+    return 2 * (1 - _t_cdf(abs(t_val), df))
 
 
-# HÀM 4: coef_inference
+def _t_ppf(alpha, df, tol=1e-10, max_iter=200):
+    if alpha < 0.5:
+        return -_t_ppf(1 - alpha, df, tol, max_iter)
+    lo, hi = 0.0, 1.0
+    while _t_cdf(hi, df) < alpha:
+        hi *= 2
+    for _ in range(max_iter):
+        mid = (lo + hi) / 2
+        if _t_cdf(mid, df) < alpha: lo = mid
+        else: hi = mid
+        if hi - lo < tol: break
+    return (lo + hi) / 2
+
+
+# FUNCTION 4: coef_inference
 def coef_inference(X, y, beta_hat, sigma2, fit_intercept=True, confidence=0.95):
     X_design = add_intercept(X) if fit_intercept else [row[:] for row in X]
     n = len(X_design)
@@ -242,7 +283,7 @@ def coef_inference(X, y, beta_hat, sigma2, fit_intercept=True, confidence=0.95):
     p_values = [_t_sf(t_stats[j], dof) for j in range(k)]
 
     alpha  = 1 - confidence
-    t_crit = _t_ppf(alpha / 2, dof)   
+    t_crit = _t_ppf(1 - alpha / 2, dof)
 
     ci_lower = [beta_hat[j] - t_crit * se[j] for j in range(k)]
     ci_upper = [beta_hat[j] + t_crit * se[j] for j in range(k)]
@@ -260,7 +301,7 @@ def coef_inference(X, y, beta_hat, sigma2, fit_intercept=True, confidence=0.95):
 
 
 def print_inference(result, feature_names=None, beta_hat=None):
-    print("---------------------Hàm 4---------------------")
+    print("---------------------Function 4---------------------")
     k     = len(result["se"])
     names = ["intercept"] + (
         feature_names if feature_names
