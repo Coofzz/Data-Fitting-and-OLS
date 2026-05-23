@@ -1,8 +1,9 @@
 import numpy as np
 
+
 def kfold_cv(X, y, k=5, random_state=42):
     """
-    Cài đặt k-fold cross-validation cho mô hình OLS.
+    K-fold cross-validation for OLS regression.
     """
     rng = np.random.default_rng(random_state)
     n = len(y)
@@ -20,7 +21,6 @@ def kfold_cv(X, y, k=5, random_state=42):
         current = stop
 
     mse_scores = []
-
     for i in range(k):
         test_indices = folds[i]
         train_indices = np.hstack(folds[:i] + folds[i + 1:])
@@ -31,7 +31,6 @@ def kfold_cv(X, y, k=5, random_state=42):
         beta = np.linalg.inv(X_train.T @ X_train) @ X_train.T @ y_train
 
         y_pred = X_test @ beta
-
         mse = np.mean((y_test - y_pred) ** 2)
         mse_scores.append(mse)
 

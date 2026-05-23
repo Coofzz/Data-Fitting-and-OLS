@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 import scipy.stats as stats
+
 
 def residual_plots(X, y, beta_hat):
     """
-    Vẽ 4 biểu đồ phân tích phần dư chuẩn theo chuẩn R lm():
+    Draw the four standard residual diagnostic plots (R lm() style):
       1. Residuals vs Fitted
       2. Normal Q-Q
       3. Scale-Location
@@ -24,37 +26,36 @@ def residual_plots(X, y, beta_hat):
     cooks_d = (std_residuals ** 2 / p) * (leverage / np.clip(1 - leverage, 1e-10, None))
 
     fig, axs = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle('Residual Analysis Plots', fontsize=16)
+    fig.suptitle('Residual Diagnostic Plots', fontsize=16)
 
-    axs[0, 0].scatter(y_hat, residuals, alpha=0.6, edgecolors='k', linewidths=0.4)
-    z1 = np.polyfit(y_hat, residuals, 1)
-    p1 = np.poly1d(z1)
     x_line = np.linspace(y_hat.min(), y_hat.max(), 200)
-    axs[0, 0].plot(x_line, p1(x_line), color='red', lw=1.5)
+    axs[0, 0].scatter(y_hat, residuals, alpha=0.6, edgecolors='k', linewidths=0.4)
+    trend1 = np.poly1d(np.polyfit(y_hat, residuals, 1))
+    axs[0, 0].plot(x_line, trend1(x_line), color='red', lw=1.5, label='Trend')
     axs[0, 0].axhline(0, color='grey', linestyle='dashed', lw=1)
     axs[0, 0].set_title('Residuals vs Fitted')
     axs[0, 0].set_xlabel('Fitted values')
     axs[0, 0].set_ylabel('Residuals')
+    axs[0, 0].legend(fontsize=9)
 
     stats.probplot(std_residuals, dist="norm", plot=axs[0, 1])
     axs[0, 1].set_title('Normal Q-Q')
 
-    sqrt_abs_std_res = np.sqrt(np.abs(std_residuals))
-    axs[1, 0].scatter(y_hat, sqrt_abs_std_res, alpha=0.6, edgecolors='k', linewidths=0.4)
-    z3 = np.polyfit(y_hat, sqrt_abs_std_res, 1)
-    p3 = np.poly1d(z3)
-    axs[1, 0].plot(x_line, p3(x_line), color='red', lw=1.5)
+    sqrt_abs_std = np.sqrt(np.abs(std_residuals))
+    axs[1, 0].scatter(y_hat, sqrt_abs_std, alpha=0.6, edgecolors='k', linewidths=0.4)
+    trend3 = np.poly1d(np.polyfit(y_hat, sqrt_abs_std, 1))
+    axs[1, 0].plot(x_line, trend3(x_line), color='red', lw=1.5, label='Trend')
     axs[1, 0].set_title('Scale-Location')
     axs[1, 0].set_xlabel('Fitted values')
     axs[1, 0].set_ylabel(r'$\sqrt{|\mathrm{Standardized\ Residuals}|}$')
+    axs[1, 0].legend(fontsize=9)
 
+    threshold = 4 / n
     obs_idx = np.arange(n)
     axs[1, 1].bar(obs_idx, cooks_d, color='steelblue', alpha=0.7)
-    threshold = 4 / n         
     axs[1, 1].axhline(threshold, color='red', linestyle='dashed', lw=1.5,
-                      label=f'Ngưỡng 4/n = {threshold:.3f}')
-    influential = np.where(cooks_d > threshold)[0]
-    for idx in influential:
+                      label=f"Threshold 4/n = {threshold:.3f}")
+    for idx in np.where(cooks_d > threshold)[0]:
         axs[1, 1].text(idx, cooks_d[idx] + cooks_d.max() * 0.01,
                        str(idx), ha='center', va='bottom', fontsize=7, color='red')
     axs[1, 1].set_title("Cook's Distance")
@@ -64,4 +65,5 @@ def residual_plots(X, y, beta_hat):
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.92)
-    plt.show()
+    if matplotlib.get_backend().lower() != 'agg':
+        plt.show()

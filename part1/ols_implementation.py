@@ -1,8 +1,9 @@
 import numpy as np
 
+
 def vif(X):
     """
-    Tính chỉ số VIF cho từng biến trong ma trận đặc trưng X.
+    Compute the Variance Inflation Factor (VIF) for each feature in X.
     """
     n, p = X.shape
     vif_scores = np.zeros(p)
@@ -14,7 +15,6 @@ def vif(X):
         X_i = np.column_stack([np.ones(n), X_i])
 
         beta = np.linalg.inv(X_i.T @ X_i) @ X_i.T @ y_i
-
         y_hat = X_i @ beta
 
         ss_tot = np.sum((y_i - np.mean(y_i)) ** 2)

@@ -2,7 +2,9 @@ import numpy as np
 
 def ridge_fit(X, y, lam):
     """
-    Cài đặt Ridge Regression.
+    Fit Ridge Regression with closed-form solution.
+
+    The intercept is NOT penalised (I_mod[0, 0] = 0).
     """
     p = X.shape[1]
     I_mod = np.eye(p)
