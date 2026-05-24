@@ -213,6 +213,7 @@ class TestOLS(unittest.TestCase):
             self.assertGreater(se, 0.0)
         for pv in inf["p_values"]:
             self.assertTrue(0.0 <= pv <= 1.0)
+        self.assertTrue(verify_against_numpy(X, y, label="Test 1: y = -1.5 + 1.5*x"))
 
     def test_2_perfect_linear_fit(self):
         X = [[1.0], [2.0], [3.0], [4.0], [5.0]]
@@ -233,6 +234,7 @@ class TestOLS(unittest.TestCase):
         trace = sum(r_hat["H"][i][i] for i in range(r_hat["n"]))
         self.assertTrue(approx(trace, r_hat["k"]))
         self.assertLess(inf["p_values"][1], 0.05)
+        self.assertTrue(verify_against_numpy(X, y, label="Test 2: y = 2 + 3*x"))
 
     def test_3_no_intercept(self):
         X = [[1.0], [2.0], [3.0], [4.0]]
@@ -256,6 +258,7 @@ class TestOLS(unittest.TestCase):
         self.assertEqual(len(result["beta_hat"]), 1)
         self.assertTrue(approx(result["beta_hat"][0], 2.0))
         self.assertTrue(approx(result["rss"], 0.0, tol=1e-6))
+        self.assertTrue(verify_against_numpy(X, y, fit_intercept=False, label="Test 3: y = 2*x (no intercept)"))
 
     def test_4_multivariate_regression(self):
         X = [
@@ -291,6 +294,7 @@ class TestOLS(unittest.TestCase):
             hi = max(inf["ci_lower"][j], inf["ci_upper"][j])
             self.assertLessEqual(lo, result["beta_hat"][j] + 1e-8)
             self.assertGreaterEqual(hi, result["beta_hat"][j] - 1e-8)
+        self.assertTrue(verify_against_numpy(X, y, label="Test 4: y = 1 + 2*x1 + 0.5*x2"))
 
     def test_5_wider_ci_at_99_percent(self):
         X = [[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]]
@@ -317,6 +321,7 @@ class TestOLS(unittest.TestCase):
             width99 = abs(inf99["ci_upper"][j] - inf99["ci_lower"][j])
             self.assertGreater(width99, width95)
         self.assertLess(inf["p_values"][1], 0.05)
+        self.assertTrue(verify_against_numpy(X, y, label="Test 5: y ~ 2*x"))
 
 
 @unittest.skipUnless(HAS_SCIPY, "pip install scipy de kiem chung p-value/CI")
@@ -335,39 +340,10 @@ class TestNumpyInferenceSciPy(unittest.TestCase):
         self.assertTrue(np.allclose(inf["ci_upper"], hi_np, atol=TOL))
 
 
-class TestNumpyReference(unittest.TestCase):
-    """Doi chieu ket qua voi NumPy lstsq (va SciPy neu co)."""
-
-    def test_verify_test1_data(self):
-        X = [[1.0], [3.0], [4.0], [7.0], [9.0], [12.0]]
-        y = [0.0, 2.0, 5.0, 10.0, 12.0, 16.0]
-        self.assertTrue(verify_against_numpy(X, y, label="Test 1 (X1, y1)"))
-
-    def test_verify_multivariate(self):
-        X = [
-            [1.0, 0.5],
-            [2.0, 3.0],
-            [3.0, 1.5],
-            [4.0, 4.0],
-            [5.0, 2.5],
-            [6.0, 1.0],
-        ]
-        y = [1.0 + 2.0 * x1 + 0.5 * x2 for x1, x2 in X]
-        self.assertTrue(verify_against_numpy(X, y, label="da bien (Test 4)"))
-
-    def test_verify_no_intercept(self):
-        X = [[1.0], [2.0], [3.0], [4.0]]
-        y = [2.0, 4.0, 6.0, 8.0]
-        self.assertTrue(
-            verify_against_numpy(X, y, fit_intercept=False, label="khong intercept")
-        )
-
-
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     suite.addTests(loader.loadTestsFromTestCase(TestOLS))
-    suite.addTests(loader.loadTestsFromTestCase(TestNumpyReference))
     suite.addTests(loader.loadTestsFromTestCase(TestNumpyInferenceSciPy))
     runner = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0)
     result = runner.run(suite)
