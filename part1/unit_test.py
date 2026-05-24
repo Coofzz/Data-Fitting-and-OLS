@@ -95,14 +95,12 @@ def numpy_inference_reference(
 
 
 def numpy_se_reference(X, sigma2, fit_intercept=True):
-    """SE chi can NumPy (khong can scipy)."""
     Xd = _design_matrix(X, fit_intercept)
     xtx_inv = np.linalg.inv(Xd.T @ Xd)
     return np.sqrt(sigma2 * np.diag(xtx_inv))
 
 
 def verify_against_numpy(X, y, fit_intercept=True, confidence=0.95, label=""):
-    """So sanh 4 ham voi NumPy/SciPy; in bang PASS/FAIL."""
     print(f"\n--- Kiem chung NumPy{': ' + label if label else ''} ---")
     result = ols_fit(X, y, fit_intercept=fit_intercept)
     beta_np, yhat_np, rss_np, s2_np = numpy_ols_reference(X, y, fit_intercept)
