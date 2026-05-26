@@ -101,7 +101,7 @@ def numpy_se_reference(X, sigma2, fit_intercept=True):
 
 
 def verify_against_numpy(X, y, fit_intercept=True, confidence=0.95, label=""):
-    print(f"\n--- Kiem chung NumPy{': ' + label if label else ''} ---")
+    print(f"\n--- Verify against NumPy{': ' + label if label else ''} ---")
     result = ols_fit(X, y, fit_intercept=fit_intercept)
     beta_np, yhat_np, rss_np, s2_np = numpy_ols_reference(X, y, fit_intercept)
 
@@ -154,9 +154,9 @@ def verify_against_numpy(X, y, fit_intercept=True, confidence=0.95, label=""):
                 ("coef_inference ci_upper", np.allclose(inf["ci_upper"], hi_np, atol=TOL)),
             ]
         else:
-            print("  [SKIP]  coef_inference t/CI (sigma^2 ~ 0, fit hoan hao)")
+            print("  [SKIP]  coef_inference t/CI (sigma^2 ~ 0, perfect fit)")
     else:
-        print("  [SKIP]  coef_inference t/p/CI (can cai scipy)")
+        print("  [SKIP]  coef_inference t/p/CI (install scipy)")
 
     for name, ok in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}]  {name}")
@@ -322,7 +322,7 @@ class TestOLS(unittest.TestCase):
         self.assertTrue(verify_against_numpy(X, y, label="Test 5: y ~ 2*x"))
 
 
-@unittest.skipUnless(HAS_SCIPY, "pip install scipy de kiem chung p-value/CI")
+@unittest.skipUnless(HAS_SCIPY, "pip install scipy to verify p-value/CI")
 class TestNumpyInferenceSciPy(unittest.TestCase):
 
     def test_inference_scipy_test1(self):

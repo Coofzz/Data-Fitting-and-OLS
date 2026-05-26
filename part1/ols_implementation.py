@@ -70,7 +70,6 @@ def add_intercept(X):
 # Function 1: ols_fit
 def ols_fit(X, y, fit_intercept=True):
     X_design = add_intercept(X) if fit_intercept else [row[:] for row in X]
-
     n = len(X_design)          
     k = len(X_design[0])       
     p = k - 1 if fit_intercept else k  
@@ -92,7 +91,6 @@ def ols_fit(X, y, fit_intercept=True):
     residuals = [y[i] - y_hat[i] for i in range(n)]
 
     rss = sum(r ** 2 for r in residuals)
-
     dof = n - k
     sigma2 = rss / (n - p - 1)
 
@@ -106,8 +104,6 @@ def ols_fit(X, y, fit_intercept=True):
         "p"        : p,
         "dof"      : dof,
     }
-
-
 
 def print_results(result, feature_names=None):
     print("---------------------Function 1---------------------")
