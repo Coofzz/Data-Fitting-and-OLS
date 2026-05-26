@@ -27,7 +27,7 @@ def _compute_metrics(name: str, y_true, y_pred) -> dict:
 
 def model4_polynomial(X_train, X_test, y_train, y_test, degree=2):
     """M4: Polynomial features (degree) + Ridge with 5-fold CV."""
-    print(f"\n── M4: Polynomial (degree={degree}) + Ridge ──")
+    print(f"\n-- M4: Polynomial (degree={degree}) + Ridge --")
 
     poly       = PolynomialFeatures(degree=degree, include_bias=False)
     X_tr_poly  = poly.fit_transform(X_train)
@@ -45,7 +45,7 @@ def model4_polynomial(X_train, X_test, y_train, y_test, degree=2):
 
 def model5b_bayesian_ridge(X_train, X_test, y_train, y_test):
     """M5b: Bayesian Ridge — point predictions + predictive uncertainty (std)."""
-    print("\n── M5b: Bayesian Ridge ──")
+    print("\n-- M5b: Bayesian Ridge --")
 
     model = BayesianRidge()
     model.fit(X_train, y_train)
