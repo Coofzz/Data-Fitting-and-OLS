@@ -1,7 +1,3 @@
-"""
-Unit tests for vif, ridge_fit, residual_plots, kfold_cv.
-5 tests per function (20 total) — with detailed output.
-"""
 import numpy as np
 import sys
 sys.path.insert(0, '/home/claude')
@@ -14,7 +10,6 @@ from ridge_lasso import ridge_fit
 from residual_analysis import residual_plots
 from cross_validation import kfold_cv
 
-# ── Terminal colors ────────────────────────────────────────────
 GREEN  = "\033[92m"
 RED    = "\033[91m"
 CYAN   = "\033[96m"
@@ -36,9 +31,7 @@ def section(title):
     print(f"\n{BOLD}── {title} {'─' * (55 - len(title))}{RESET}")
 
 
-# ══════════════════════════════════════════════════════════════════
 # Tests for vif(X)
-# ══════════════════════════════════════════════════════════════════
 section("vif(X)")
 
 # T1: Independent features → VIF close to 1
@@ -101,9 +94,7 @@ check(
 )
 
 
-# ══════════════════════════════════════════════════════════════════
 # Tests for ridge_fit(X, y, lam)
-# ══════════════════════════════════════════════════════════════════
 section("ridge_fit(X, y, lam)")
 
 np.random.seed(1)
@@ -168,9 +159,7 @@ check(
 )
 
 
-# ══════════════════════════════════════════════════════════════════
 # Tests for residual_plots(X, y, beta_hat)
-# ══════════════════════════════════════════════════════════════════
 section("residual_plots(X, y, beta_hat)")
 
 np.random.seed(2)
@@ -241,9 +230,7 @@ check(
 )
 
 
-# ══════════════════════════════════════════════════════════════════
 # Tests for kfold_cv(X, y, k, random_state)
-# ══════════════════════════════════════════════════════════════════
 section("kfold_cv(X, y, k, random_state)")
 
 from sklearn.model_selection import KFold
@@ -310,7 +297,6 @@ check(
 )
 
 
-# ══════════════════════════════════════════════════════════════════
 print(f"\n{'='*58}")
 passed = sum(results)
 total  = len(results)
