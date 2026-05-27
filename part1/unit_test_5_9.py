@@ -36,7 +36,7 @@ def test_vif_t1():
     # T1: Independent features -> VIF close to 1
     np.random.seed(0)
     X_ind = np.random.randn(500, 3)
-    v = vif(X_ind)
+    v = np.array(vif(X_ind))
     check(
         "T1 [vif] Independent features: all VIF ~ 1 (< 2)",
         np.all(v < 2),
@@ -49,7 +49,7 @@ def test_vif_t2():
     np.random.seed(99)
     X_col = np.random.randn(200, 2)
     X_col_near = np.column_stack([X_col, X_col[:, 0] + 1e-6 * np.random.randn(200)])
-    v_col = vif(X_col_near)
+    v_col = np.array(vif(X_col_near))
     check(
         "T2 [vif] Near-perfect collinearity: VIF_3 > 1e6",
         v_col[2] > 1e6,
@@ -61,7 +61,7 @@ def test_vif_t3():
     # T3: High multicollinearity -> VIF >> 10
     X_mc = np.random.rand(200, 3)
     X_mc[:, 2] = 0.99 * X_mc[:, 0] + np.random.rand(200) * 0.01
-    v_mc = vif(X_mc)
+    v_mc = np.array(vif(X_mc))
     check(
         "T3 [vif] Near-collinear X3: VIF_3 > 100",
         v_mc[2] > 100,
@@ -72,7 +72,7 @@ def test_vif_t3():
 def test_vif_t4():
     # T4: Output shape is (p,)
     X_sh = np.random.randn(100, 5)
-    v_sh = vif(X_sh)
+    v_sh = np.array(vif(X_sh))
     check(
         "T4 [vif] Output shape equals number of features",
         v_sh.shape == (5,),
@@ -85,7 +85,7 @@ def test_vif_t5():
     from statsmodels.stats.outliers_influence import variance_inflation_factor
     X_ref = np.random.rand(150, 3)
     X_ref[:, 2] = 0.8 * X_ref[:, 0] + 0.4 * X_ref[:, 1] + np.random.rand(150) * 0.1
-    v_custom = vif(X_ref)
+    v_custom = np.array(vif(X_ref))
     X_with_int = np.column_stack([np.ones(150), X_ref])
     v_sm = np.array([variance_inflation_factor(X_with_int, i+1) for i in range(3)])
     check(
@@ -109,7 +109,7 @@ from sklearn.linear_model import Ridge
 def test_ridge_fit_t1():
     # T1: lam=0 matches plain OLS
     beta_ols = np.linalg.inv(X_rb.T @ X_rb) @ X_rb.T @ y_r
-    beta_r0 = ridge_fit(X_rb, y_r, lam=0)
+    beta_r0 = np.array(ridge_fit(X_rb, y_r, lam=0))
     check(
         "T1 [ridge] lam=0 equals OLS solution (atol=1e-10)",
         np.allclose(beta_r0, beta_ols, atol=1e-10),
@@ -120,7 +120,7 @@ def test_ridge_fit_t1():
 
 def test_ridge_fit_t2():
     # T2: Matches sklearn Ridge (solver=cholesky)
-    beta_rc = ridge_fit(X_rb, y_r, lam=5.0)
+    beta_rc = np.array(ridge_fit(X_rb, y_r, lam=5.0))
     sk = Ridge(alpha=5.0, solver='cholesky').fit(X_r, y_r)
     beta_sk = np.concatenate([[sk.intercept_], sk.coef_])
     check(
@@ -133,8 +133,8 @@ def test_ridge_fit_t2():
 
 def test_ridge_fit_t3():
     # T3: Larger lambda -> coefficients shrink toward 0
-    beta_small = ridge_fit(X_rb, y_r, lam=0.01)
-    beta_large = ridge_fit(X_rb, y_r, lam=1000.0)
+    beta_small = np.array(ridge_fit(X_rb, y_r, lam=0.01))
+    beta_large = np.array(ridge_fit(X_rb, y_r, lam=1000.0))
     check(
         "T3 [ridge] Larger lambda shrinks slope coefficients",
         np.all(np.abs(beta_large[1:]) < np.abs(beta_small[1:])),
@@ -159,8 +159,8 @@ def test_ridge_fit_t5():
     # T5: Output shape
     check(
         "T5 [ridge] Output shape = (p+1,)",
-        ridge_fit(X_rb, y_r, lam=1.0).shape == (X_rb.shape[1],),
-        f"Shape actual  : {ridge_fit(X_rb, y_r, lam=1.0).shape}\n"
+        np.array(ridge_fit(X_rb, y_r, lam=1.0)).shape == (X_rb.shape[1],),
+        f"Shape actual  : {np.array(ridge_fit(X_rb, y_r, lam=1.0)).shape}\n"
         f"Shape expected: ({X_rb.shape[1]},)"
     )
 

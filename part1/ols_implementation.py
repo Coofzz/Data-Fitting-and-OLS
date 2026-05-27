@@ -1,29 +1,37 @@
-import numpy as np
 import math
-
 
 def vif(X):
     """
     Compute the Variance Inflation Factor (VIF) for each feature in X.
     """
-    n, p = X.shape
-    vif_scores = np.zeros(p)
+    X = [list(row) for row in X]
+    n = len(X)
+    p = len(X[0])
+    vif_scores = [0.0] * p
 
     for i in range(p):
-        y_i = X[:, i]
-        X_i = np.delete(X, i, axis=1)
+        y_i = [row[i] for row in X]
+        X_i = [[row[j] for j in range(p) if j != i] for row in X]
 
-        X_i = np.column_stack([np.ones(n), X_i])
+        X_i_design = [[1.0] + row for row in X_i]
 
-        beta = np.linalg.inv(X_i.T @ X_i) @ X_i.T @ y_i
-        y_hat = X_i @ beta
+        XT = mat_transpose(X_i_design)
+        XTX = mat_mul(XT, X_i_design)
+        XTX_inv = mat_inverse(XTX)
+        y_col = [[yi] for yi in y_i]
+        XTy = mat_mul(XT, y_col)
+        XTy_vec = [r[0] for r in XTy]
 
-        ss_tot = np.sum((y_i - np.mean(y_i)) ** 2)
-        ss_res = np.sum((y_i - y_hat) ** 2)
-        r_squared = 1 - (ss_res / ss_tot)
+        beta = mat_vec_mul(XTX_inv, XTy_vec)
+        y_hat = mat_vec_mul(X_i_design, beta)
 
-        if r_squared == 1:
-            vif_scores[i] = np.inf
+        y_mean = sum(y_i) / n
+        ss_tot = sum((yi - y_mean) ** 2 for yi in y_i)
+        ss_res = sum((y_i[k] - y_hat[k]) ** 2 for k in range(n))
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 1e-12 else 1.0
+
+        if abs(r_squared - 1.0) < 1e-12:
+            vif_scores[i] = float('inf')
         else:
             vif_scores[i] = 1 / (1 - r_squared)
 
