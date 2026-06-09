@@ -63,6 +63,7 @@ Bộ dữ liệu dùng trong Part 2:
 - Tên file: `data/survey_results_public.csv`
 - Nguồn: Stack Overflow Developer Survey 2023
 - Link: https://survey.stackoverflow.co/2023/
+- Link data: https://www.kaggle.com/datasets/stackoverflow/stack-overflow-2023-developers-survey
 - Kích thước gốc: 89,184 dòng x 84 cột
 - Biến mục tiêu: `ConvertedCompYearly`
 
