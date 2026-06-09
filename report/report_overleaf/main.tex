@@ -1,0 +1,44 @@
+\documentclass[12pt]{article}
+
+\usepackage{hcmus-report-template}
+
+\setlength{\parindent}{0pt}
+
+\renewcommand{\baselinestretch}{1.5}
+
+\newcommand{\coursename}{Toán Ứng dụng và Thống kê}
+\newcommand{\reportname}{Data Fitting và Phương Pháp OLS}
+\newcommand{\reporttitle}{ĐỒ ÁN 2}
+
+\newcommand{\studentname}{23120017 - Trần Thanh An\\23120096 - Nguyễn Viết Toàn\\23120303 - Nguyễn Hồng Ngọc\\24120278 - Võ Văn Khánh Đăng\\24120472 - Trương Huệ Trí}
+\newcommand{\teachername}{Võ Nam Thục Đoan \\ Lê Nhựt Nam}
+
+% Header
+\lhead{\reporttitle}
+\rhead{
+Trường Đại học Khoa học Tự nhiên - ĐHQG HCM\\
+\coursename
+}
+
+% Footer
+\newcommand{\leftfooter}{Link Github \href{https://github.com/Coofzz/Data-Fitting-and-OLS}{Nhóm 11 - CQ2024-3}}
+\lfoot{\leftfooter}
+
+% ============ DOCUMENT ============
+\begin{document}
+
+\pagenumbering{roman}
+\input{content/title.tex}
+
+\tableofcontents
+\pagebreak
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{content/phancong}
+\input{content/part1}
+\input{content/part2}
+\input{content/tailieuthamkhao}
+
+\end{document}

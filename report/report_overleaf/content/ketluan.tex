@@ -1,0 +1,25 @@
+\section{Kết luận}
+
+Nhóm đã hoàn thành toàn bộ các yêu cầu được giao, từ việc tìm hiểu lý thuyết, cài đặt thuật toán từ đầu cho đến việc phân tích thực nghiệm và trực quan hóa hình học.
+
+\subsection{Tóm tắt kết quả đạt được}
+\begin{itemize}
+    \item \textbf{Về thuật toán:} Nhóm đã tự cài đặt được các thuật toán nòng cốt như Phép khử Gauss có Partial Pivoting, Gauss-Jordan, phân rã SVD và thuật toán Jacobi. Các thuật toán này đã xử lý tốt việc giải hệ phương trình tuyến tính (bao gồm cả hệ vuông, hệ vô số nghiệm và hệ quá xác định), tính định thức, ma trận nghịch đảo, hạng và các không gian cơ sở.
+    \item \textbf{Về trực quan hóa:} Nhóm đã sử dụng thư viện Manim để xây dựng một video minh họa trực quan và dễ hiểu bản chất hình học của phép phân rã SVD (chuỗi biến đổi Xoay - Co giãn - Xoay) và phép chéo hóa (sự bất biến về hướng của vector riêng).
+    \item \textbf{Về đánh giá thực nghiệm:} Đã xây dựng các kịch bản kiểm thử và tiến hành phân tích hiệu năng, độ ổn định số học của 4 phương pháp giải hệ phương trình (Khử Gauss, SVD, Jacobi, Gauss-Seidel) trên các ma trận chéo trội (SPD) và ma trận có điều kiện kém (Hilbert). Kết quả phân tích được biểu diễn trực quan qua các đồ thị log-log.
+\end{itemize}
+
+\subsection{Bài học rút ra}
+\begin{itemize}
+    \item \textbf{Hiểu kỹ lý thuyết toán học:} Việc phải tự tay lập trình từng dòng code mà không dùng thư viện có sẵn giúp nhóm hiểu rõ cặn kẽ cách thức hoạt động của các thuật toán, thay vì chỉ sử dụng chúng một cách mơ hồ.
+    \item \textbf{Tầm quan trọng của độ ổn định số học:} Nhóm nhận ra rằng trong tính toán trên máy tính, sai số làm tròn của số thực là một vấn đề rất lớn. Kỹ thuật Partial Pivoting hay việc thiết lập các ngưỡng dung sai (tolerance) là bắt buộc để thuật toán hội tụ và cho ra kết quả đúng.
+    \item \textbf{Tư duy lựa chọn thuật toán:} Phần 3 biết được cách đánh giá sự đánh đổi giữa tốc độ và độ ổn định. Phương pháp lặp (Gauss-Seidel) tuy rất nhanh với ma trận tốt, nhưng phương pháp trực tiếp (Khử Gauss) lại là cứu cánh duy nhất khi đối mặt với dữ liệu nhiễu.
+    \item \textbf{Kỹ năng lập trình và làm việc nhóm:} Cải thiện tư duy thiết kế code theo module, rèn luyện kỹ năng phân chia công việc trên Git/GitHub và làm quen với công cụ trình bày tài liệu LaTeX.
+\end{itemize}
+
+\subsection{Khó khăn gặp phải và cách khắc phục}
+\begin{itemize}
+    \item \textbf{Xử lý sai số dấu phẩy động:} Trong quá trình khử Gauss hoặc tìm hạng ma trận, các số 0 lý thuyết đôi khi bị tính toán thành các giá trị rác cực nhỏ (ví dụ $10^{-16}$). Điều này làm sai lệch hạng ma trận hoặc kết luận tính khả nghịch. Nhóm đã khắc phục bằng cách thiết lập một ngưỡng $\epsilon = 10^{-12}$, mọi giá trị nhỏ hơn ngưỡng này đều được ép về 0.
+    \item \textbf{Xử lý hệ phương trình vô số nghiệm:} Việc biểu diễn nghiệm dưới dạng các tham số $t_0, t_1, \dots$ trong thuật toán thế ngược thì nhóm đã giải quyết bằng cách duyệt ngược cẩn thận và gán biểu thức cho từng biến.
+    \item \textbf{Trực quan hóa với Manim:} Vì Manim là một thư viện hoạt họa toán học yêu cầu tư duy hình học không gian tốt, nhóm gặp một số khó khăn ban đầu trong việc đồng bộ hóa thời gian các hoạt ảnh, ép kiểu dữ liệu từ mảng 2D NumPy sang không gian 3D của Manim để tránh lỗi render. Nhóm đã đọc tài liệu và thử nghiệm nhiều lần để ra được video hoàn chỉnh.
+\end{itemize}

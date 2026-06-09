@@ -1,0 +1,555 @@
+\section{Phần 2: Ứng Dụng Data Fitting vào Dữ Liệu Thực Tế}
+\subsection*{Đề tài: Phân tích và Dự đoán Lương Developer (Stack Overflow Survey 2023)}
+
+% ----------------------------------------------------------
+\subsection{Giới Thiệu Bài Toán}
+
+\subsubsection{Lý do chọn dataset}
+
+\textbf{Stack Overflow Developer Survey 2023} được chọn vì đáp ứng đầy đủ
+các tiêu chí của đề bài:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Tiêu chí} & \textbf{Đáp ứng} \\
+\midrule
+Dữ liệu thực (real-world) & Khảo sát 89.184 lập trình viên toàn cầu, thu thập năm 2023 \\
+Có missing values $\geq 5\%$ & \texttt{ConvertedCompYearly} thiếu 46\%, \texttt{ICorPM} thiếu 51\% \\
+Biến mục tiêu liên tục & \texttt{ConvertedCompYearly} — lương năm (USD) \\
+$n \geq 200$, $p \geq 3$ & $n = 89.184$ quan sát, $p = 9$ features dự báo \\
+Nguồn đáng tin cậy & Công bố chính thức tại \texttt{survey.stackoverflow.co/2023} \\
+\bottomrule
+\end{tabular}
+\caption{Kiểm tra tiêu chí chọn dataset.}
+\end{table}
+
+\noindent\textbf{Lý do thực tế:} Bài toán dự đoán lương developer có ý nghĩa ứng dụng
+cao — phản ánh câu hỏi thực tế ``yếu tố nào ảnh hưởng nhiều nhất đến thu nhập trong
+ngành IT?''
+
+\subsubsection{Mô tả features}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llp{8.5cm}}
+\toprule
+\textbf{Cột} & \textbf{Kiểu} & \textbf{Mô tả} \\
+\midrule
+\texttt{ConvertedCompYearly} & Numeric & \textbf{Biến mục tiêu} — lương năm quy đổi sang USD \\
+\texttt{YearsCodePro} & String$\to$Numeric & Số năm kinh nghiệm lập trình chuyên nghiệp \\
+\texttt{WorkExp} & Numeric & Tổng số năm đi làm \\
+\texttt{EdLevel} & Ordinal & Trình độ học vấn — 7 nhãn survey, encode về 6 bậc ordinal (1–6) \\
+\texttt{DevType} & Multi-select & Loại lập trình viên \\
+\texttt{OrgSize} & Ordinal & Quy mô tổ chức (số nhân viên) \\
+\texttt{Country} & Nominal & Quốc gia làm việc \\
+\texttt{RemoteWork} & Nominal & Hình thức làm việc (remote/hybrid/onsite) \\
+\texttt{ICorPM} & Binary & Individual Contributor hay People Manager \\
+\texttt{Employment} & Multi-select & Hình thức hợp đồng \\
+\bottomrule
+\end{tabular}
+\caption{Mô tả các features trong bộ dữ liệu.}
+\end{table}
+
+% ----------------------------------------------------------
+\subsection{Phân Tích Dữ Liệu (EDA)}
+
+\subsubsection{Thống kê mô tả}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Chỉ số} & \textbf{Giá trị} \\
+\midrule
+Số quan sát & 89.184 \\
+Median lương & \$74.963 \\
+Mean lương & \$103.110 \\
+Max lương & \$74.351.427 \\
+Std lương & \$681.419 \\
+\bottomrule
+\end{tabular}
+\caption{Thống kê mô tả biến mục tiêu \texttt{ConvertedCompYearly}.}
+\end{table}
+
+Khoảng cách lớn giữa mean và median, cùng giá trị max cực đoan (\$74M so với median
+\$75K — tỉ lệ \textbf{1000:1}), cho thấy phân phối \textbf{lệch phải rất mạnh} — đặc
+trưng điển hình của dữ liệu thu nhập.
+
+\subsubsection{Phân tích missing values}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig1_missing_rate.png}
+    \caption{Tỉ lệ missing value theo từng cột. Thanh đỏ = vượt ngưỡng 5\%.
+             7/10 cột có tỉ lệ thiếu đáng kể; đặc biệt \texttt{ConvertedCompYearly}
+             (biến mục tiêu) thiếu 46\% và \texttt{RemoteWork} thiếu 17.2\%.}
+    \label{fig:missing_rate}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrl}
+\toprule
+\textbf{Cột} & \textbf{Tỉ lệ thiếu} & \textbf{Cơ chế} \\
+\midrule
+\texttt{ConvertedCompYearly} & 46.2\% & MNAR \\
+\texttt{ICorPM} & 51.0\% & MAR \\
+\texttt{WorkExp} & 51.1\% & MAR \\
+\texttt{YearsCodePro} & 25.9\% & MAR \\
+\texttt{OrgSize} & 27.0\% & MAR \\
+\texttt{DevType} & 13.8\% & MAR \\
+\texttt{RemoteWork} & 17.2\% & MAR \\
+\texttt{Country}, \texttt{EdLevel}, \texttt{Employment} & $< 2\%$ & MCAR \\
+\bottomrule
+\end{tabular}
+\caption{Tỉ lệ và cơ chế missing của từng cột.}
+\end{table}
+
+\subsubsection{Phân tích cơ chế missing và lý do xử lý}
+
+\paragraph{MCAR (Missing Completely At Random).}
+\texttt{Country}, \texttt{RemoteWork}, \texttt{EdLevel} có tỉ lệ thiếu $< 2\%$,
+không có pattern hệ thống.
+$\to$ \textbf{Quyết định:} Listwise deletion — mất không đáng kể, không gây bias.
+
+\paragraph{MAR (Missing At Random).}
+MAR (Missing At Random). \texttt{WorkExp}, \texttt{YearsCodePro}, \texttt{ICorPM}, \texttt{OrgSize}, \texttt{RemoteWork} thiếu nhiều hơn ở nhóm freelancer và sinh viên — missingness tương quan với biến \texttt{Employment} (có thể quan sát được). \texttt{WorkExp} và \texttt{YearsCodePro} thiếu ở những người không có kinh nghiệm lập trình chuyên nghiệp; \texttt{RemoteWork} thiếu 17.2\% ở nhóm không phải full-time employee.
+$\to$ \textbf{Quyết định:} Drop hàng sau khi encode vì nhóm này thường không phải
+full-time developer, và tỉ lệ mất thêm chỉ $< 5\%$.
+
+\paragraph{MNAR (Missing Not At Random).}
+\texttt{ConvertedCompYearly} — xác suất không khai báo phụ thuộc vào chính giá trị
+lương: người lương rất cao hoặc rất thấp có xu hướng bỏ qua.
+$\to$ \textbf{Quyết định:} Bắt buộc dùng listwise deletion — \textbf{không thể impute
+biến mục tiêu} vì bất kỳ imputation nào cũng làm méo phân phối $y$ và khiến các
+metric trên test set không còn tin cậy.
+
+\subsubsection{Phát hiện outlier}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig3_outlier_detection.png}
+    \caption{So sánh phương pháp phát hiện outlier: IQR (ngưỡng \$238.242, phát hiện
+             4.6\% mẫu) vs.\ Z-score (ngưỡng $3\sigma \approx \$2.1\text{M}$,
+             chỉ phát hiện 0.1\%).}
+    \label{fig:outlier}
+\end{figure}
+
+\noindent\textbf{IQR (Interquartile Range):}
+\[
+    Q_1 = \$43.907, \quad Q_3 = \$121.641, \quad \mathrm{IQR} = \$77.734
+\]
+\[
+    \text{Upper bound} = Q_3 + 1.5 \times \mathrm{IQR} = \$238.242
+    \quad \Rightarrow \quad \text{Outliers: } 4.6\%\ (2.208 \text{ quan sát})
+\]
+
+\noindent\textbf{Z-score:} Ngưỡng $3\sigma \approx \$2.144.657$ — quá bảo thủ vì \texttt{std}
+bị thổi phồng bởi giá trị \$74M, chỉ phát hiện 0.1\% outlier.
+
+\noindent\textbf{Lý do chọn IQR:} IQR chỉ dùng $Q_1$ và $Q_3$, không bị ảnh hưởng bởi
+outlier cực đoan. Z-score không phù hợp cho phân phối lệch phải mạnh vì giá trị max
+thổi phồng \texttt{std}, khiến ngưỡng $3\sigma \approx \$2.1\text{M}$ — cho phép hầu
+hết giá trị cực đoan đi qua.
+
+\subsubsection{Phân tích tương quan}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/part2/fig4_correlation_heatmap.png}
+    \caption{Ma trận tương quan Pearson giữa các biến số. Cặp
+             \texttt{YearsCodePro}--\texttt{WorkExp} có $r \approx 0.928$ — tương
+             quan cao nhưng không cần loại bỏ ngay ở bước này.}
+    \label{fig:heatmap}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llp{7cm}}
+\toprule
+\textbf{Cặp biến} & $r$ & \textbf{Nhận xét} \\
+\midrule
+\texttt{YearsCodePro} $\leftrightarrow$ \texttt{WorkExp} & $\approx 0.928$ & Tương quan cao; cần kiểm tra VIF sau encoding \\
+\texttt{ConvertedCompYearly} $\leftrightarrow$ \texttt{YearsCodePro} & $\approx 0.039$ & Tương quan rất yếu — salary phụ thuộc chủ yếu vào Country và role, không phải kinh nghiệm đơn thuần \\
+\texttt{ConvertedCompYearly} $\leftrightarrow$ \texttt{WorkExp} & $\approx 0.046$ & Tương quan rất yếu — tương tự YearsCodePro \\
+\bottomrule
+\end{tabular}
+\caption{Nhận xét về các cặp tương quan đáng chú ý.}
+\end{table}
+
+\noindent Không có cặp nào có $|r| > 0.9$ ngoài cặp YearsCodePro--WorkExp — không cần loại
+bỏ feature nào ở bước này. Sau khi one-hot encode, VIF được kiểm tra lại.
+
+% ----------------------------------------------------------
+\subsection{Tiền Xử Lý Dữ Liệu}
+
+\subsubsection{Pipeline tổng thể}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig5_pipeline_diagram.png}
+    \caption{Sơ đồ DataPipeline toàn bộ quá trình tiền xử lý: từ 89.184 hàng raw
+             data đến 38.415 train / 9.604 test với 38 features.}
+    \label{fig:pipeline}
+\end{figure}
+
+Quy trình xử lý theo thứ tự:
+
+\begin{enumerate}
+    \item Listwise deletion (\texttt{ConvertedCompYearly = NaN}) $\to$ 48.019 hàng
+    \item Winsorize tại \$238.242
+    \item \texttt{log1p} transform $\to$ biến mục tiêu $y$
+    \item Encode features (ordinal / binary / one-hot)
+    \item Drop NaN hàng còn lại (MAR)
+    \item 80/20 train/test split (\texttt{random\_state=42})
+    \item StandardScaler (fit on train, transform test)
+    \item[$\Rightarrow$] Dataset sạch: \textbf{38.415 train | 9.604 test | 38 features}
+\end{enumerate}
+
+\subsubsection{Winsorization và Log1p Transform}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig2_salary_transform.png}
+    \caption{Pipeline biến đổi phân phối lương: (trái) raw salary lệch phải mạnh;
+             (giữa) sau Winsorization tại cap = \$238.242;
+             (phải) sau \texttt{log1p} transform — phân phối gần chuẩn hơn.}
+    \label{fig:salary_transform}
+\end{figure}
+
+\noindent\textbf{Lý do chọn Winsorization thay vì xóa hàng:}
+\begin{itemize}
+    \item Xóa 4.6\% hàng làm mất thêm dữ liệu (vốn đã giảm mạnh do MNAR)
+    \item Winsorization giữ toàn bộ hàng, chỉ co giá trị extreme về ngưỡng hợp lý
+    \item Giá trị \$74M rất có thể là lỗi nhập liệu (tỉ lệ 1000:1 so với median)
+\end{itemize}
+
+\noindent\textbf{Lý do dùng \texttt{log1p}:}
+\begin{itemize}
+    \item Nén đuôi phải $\to$ phân phối target $y$ gần normal hơn
+        (mean $\approx 11$, std $\approx 0.8$ sau transform)
+    \item Residuals đáp ứng giả thuyết Gauss--Markov tốt hơn
+    \item Hệ số có ý nghĩa nhân: tăng 1 đơn vị feature $\to$ lương nhân với
+        $e^{\hat{\beta}_j}$
+    \item Dùng \texttt{log1p} thay \texttt{log} để xử lý an toàn trường hợp salary = 0
+\end{itemize}
+
+\subsubsection{Feature Encoding}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llp{7.5cm}}
+\toprule
+\textbf{Feature} & \textbf{Phương pháp} & \textbf{Lý do} \\
+\midrule
+\texttt{EdLevel} & Ordinal (1--6) & Có thứ tự tự nhiên: tiểu học $<$ THPT $<$ ĐH $<$ ThS $<$ TS; tiết kiệm 5 dummy columns (so với one-hot 6 bậc) \\
+\texttt{OrgSize} & Ordinal (1--9) & Thứ tự quy mô nhân viên rõ ràng \\
+\texttt{ICorPM} & Binary (0/1) & Chỉ có 2 giá trị \\
+\texttt{Employment} & Binary \texttt{is\_fulltime} & 106 unique values; chỉ quan tâm full-time vs không \\
+\texttt{DevType} & One-hot top-10 + Other & Multi-select; top-10 chiếm $> 90\%$ \\
+\texttt{Country} & One-hot top-20 + Other & 185 quốc gia; top-20 chiếm $\approx 83\%$ data \\
+\texttt{RemoteWork} & One-hot (3 loại) & Nominal, không có thứ tự tự nhiên \\
+\bottomrule
+\end{tabular}
+\caption{Chiến lược encoding cho từng feature.}
+\end{table}
+
+\subsubsection{Class DataPipeline — Tránh Data Leakage}
+
+Class \texttt{DataPipeline} tách biệt \texttt{fit} và \texttt{transform}:
+
+\begin{itemize}
+    \item \texttt{fit(X\_train)}: Học top-10 DevType, top-20 Country và fit
+        \texttt{StandardScaler} \textbf{chỉ từ tập train}.
+    \item \texttt{transform(X)}: Áp dụng encoding đã học — không học lại.
+        Các category chưa thấy được gán 0.
+\end{itemize}
+
+\noindent\textbf{Tại sao phải tách fit/transform:} Nếu học top categories từ toàn bộ
+dataset (kể cả test set), model sẽ ``biết trước'' phân phối của test — đây là
+\textbf{data leakage}, khiến metric trên test lạc quan giả tạo.
+
+\noindent\textbf{Lý do chọn 80/20 split với \texttt{random\_state=42}:} Train set đủ lớn để
+học pattern, test set đủ để đánh giá tin cậy; random seed cố định đảm bảo
+reproducibility.
+
+\noindent\textbf{Lý do dùng StandardScaler (z-score) thay vì MinMaxScaler:} Ridge và Lasso
+có penalty trên norm hệ số — nếu không scale, feature có đơn vị lớn bị shrink nhiều hơn
+feature nhỏ, gây bias. StandardScaler cũng ổn định hơn khi có outlier.
+
+% ----------------------------------------------------------
+\subsection{Xây Dựng Mô Hình}
+
+\subsubsection{M1 — OLS Full (Baseline)}
+
+OLS tối thiểu hóa tổng bình phương phần dư:
+\begin{equation}
+    \hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}.
+\end{equation}
+
+\noindent\textbf{Lý do làm baseline:} OLS không có tham số cần tune, không regularization —
+đây là điểm xuất phát để đánh giá xem regularization có cải thiện không.
+
+\noindent\textbf{Kết quả:} $R^2 = 0.3847$, MAE $= 0.538$, RMSE $= 0.945$.
+
+\subsubsection{M2 — OLS Selected (p-value + VIF)}
+
+Lọc feature theo 2 bước:
+
+\textbf{Bước 1 — P-value $< 0.05$:} Loại bỏ feature không có ý nghĩa thống kê.
+Với $n \approx 38\text{K}$, test rất nhạy — ngưỡng 0.05 vẫn có thể giữ lại nhiều features.
+
+\textbf{Bước 2 — VIF $\leq 10$:}
+\begin{equation}
+    \mathrm{VIF}_j = \frac{1}{1 - R_j^2}.
+\end{equation}
+VIF $> 10$ nghĩa là feature $j$ có thể được giải thích $> 90\%$ bởi các features khác
+$\to$ hệ số không ổn định. Ngưỡng 10 được chấp nhận rộng rãi trong tài liệu
+(Hair et al., 2009).
+
+\noindent\textbf{Kết quả:} Giữ $\approx 30/38$ features.
+$R^2 = 0.3842$, MAE $= 0.539$, RMSE $= 0.946$.
+
+\subsubsection{M3 — Ridge (L2) và Lasso (L1)}
+
+\textbf{Hàm mục tiêu Ridge:}
+\begin{equation}
+    \min_{\boldsymbol{\beta}} \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2
+    + \alpha\|\boldsymbol{\beta}\|_2^2.
+\end{equation}
+
+\textbf{Hàm mục tiêu Lasso:}
+\begin{equation}
+    \min_{\boldsymbol{\beta}} \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2
+    + \alpha\|\boldsymbol{\beta}\|_1.
+\end{equation}
+
+\noindent\textbf{Lý do dùng regularization sau OLS:} Sau one-hot encoding có nhiều
+correlated dummy columns (các Country gần nhau về lương) $\to$ OLS dễ overfitting.
+Ridge co đều tất cả hệ số; Lasso đưa một số về đúng 0 (tự động feature selection).
+
+\textbf{Lý do chọn $\alpha$ bằng 5-fold CV:}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{images/part2/fig9_ridge_alpha_cv.png}
+    \caption{Ridge CV — Alpha Selection. Best $\alpha = 0.6136$ tại điểm MSE thấp
+             nhất trên thang log. CV MSE tăng mạnh khi $\alpha > 10$.}
+    \label{fig:ridge_cv}
+\end{figure}
+
+$\alpha$ quá nhỏ $\to$ gần như OLS (underfitting); $\alpha$ quá lớn $\to$ co tất cả về 0.
+CV tìm điểm cân bằng bias--variance tối ưu.
+
+\noindent\textbf{Kết quả Ridge:} $\alpha = 0.6136$,
+$R^2 = 0.3847$, MAE $= 0.538$, RMSE $= 0.945$.
+
+\noindent\textbf{Kết quả Lasso:} $\alpha = 0.001$, zeroed 6/38 features,
+$R^2 = 0.3827$, MAE $= 0.541$, RMSE $= 0.947$.
+
+\subsubsection{M4 — Polynomial Features + Ridge (Bonus)}
+
+Tạo interaction terms và bậc hai:
+\[
+    \{x_1, \ldots, x_p\} \;\longrightarrow\;
+    \{x_1,\, x_1^2,\, x_1 x_2,\, \ldots\}
+\]
+
+\noindent\textbf{Lý do thêm polynomial features:} Correlation heatmap cho thấy
+\texttt{YearsCodePro} và \texttt{WorkExp} chỉ có $r \approx 0.25$ với salary — quan hệ
+có thể phi tuyến hoặc phụ thuộc biến khác (ví dụ: kinh nghiệm $\times$ quốc gia).
+Degree $= 2$ (không phải 3+) để tránh bùng nổ features và overfitting.
+
+\noindent\textbf{Lý do kết hợp với Ridge:} $38 \to 779$ features sau expansion
+$\to$ Ridge bắt buộc để tránh overfitting.
+
+\noindent\textbf{Kết quả:} $R^2 = 0.4309$, MAE $= 0.500$, RMSE $= 0.909$
+\textbf{(tốt nhất)}.
+
+\subsubsection{M5b — Bayesian Ridge (Bonus)}
+
+Đặt prior cho $\boldsymbol{\beta}$:
+\begin{equation}
+    \boldsymbol{\beta} \sim \mathcal{N}(\mathbf{0}, \lambda^{-1}\mathbf{I}),
+    \qquad
+    y \mid \mathbf{x}, \boldsymbol{\beta} \sim \mathcal{N}(\mathbf{x}^\top\boldsymbol{\beta},\, \sigma^2).
+\end{equation}
+
+\noindent\textbf{Lý do dùng Bayesian Ridge:} Không chỉ cho điểm dự đoán mà còn cung cấp
+\textbf{độ không chắc chắn} (predictive std) — ứng dụng thực tế: hệ thống HR biết
+``model tin tưởng bao nhiêu'' vào dự đoán này.
+
+\noindent\textbf{Kết quả:} $R^2 = 0.3846$, MAE $= 0.538$, RMSE $= 0.945$.
+
+% ----------------------------------------------------------
+\subsection{Đánh Giá và So Sánh Mô Hình}
+
+\subsubsection{Bảng tổng hợp}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig6_model_comparison.png}
+    \caption{So sánh hiệu năng các mô hình trên tập test: $R^2$ (trái),
+             MAE và RMSE (phải). Polynomial+Ridge vượt trội rõ rệt.}
+    \label{fig:model_comparison}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{clccc}
+\toprule
+\textbf{Hạng} & \textbf{Mô hình} & \textbf{MAE} & \textbf{RMSE} & $R^2$ \\
+\midrule
+1 & M4 Polynomial+Ridge & 0.5003 & 0.9090 & \textbf{0.4309} \\
+2 & M1 OLS Full & 0.5378 & 0.9452 & 0.3847 \\
+3 & M3 Ridge & 0.5378 & 0.9452 & 0.3847 \\
+4 & M5b Bayesian Ridge & 0.5379 & 0.9452 & 0.3846 \\
+5 & M2 OLS Selected & 0.5389 & 0.9456 & 0.3842 \\
+6 & M3 Lasso & 0.5407 & 0.9467 & 0.3827 \\
+\bottomrule
+\end{tabular}
+\caption{Tổng hợp hiệu năng các mô hình trên tập test (thang log salary).
+         RMSE $\approx 0.91$ trên thang log-salary tương ứng sai số nhân khoảng $\times 2.5$ trên thang gốc (tại vùng median $\sim\$73\text{K}$: khoảng dự đoán từ $\sim\$29\text{K}$ đến $\sim\$181\text{K}$).}
+\end{table}
+
+\noindent\textbf{Nhận xét:}
+\begin{itemize}
+    \item M4 Polynomial+Ridge vượt trội rõ ($R^2 = 0.43$ vs $0.38$ của các mô hình
+        tuyến tính) — xác nhận có interaction effects phi tuyến.
+    \item OLS Full và Ridge cho kết quả gần như nhau $\to$ multicollinearity không
+        nghiêm trọng sau khi đã lọc VIF.
+    \item Lasso kém nhất vì $\alpha = 0.001$ — gần như OLS, nhưng mất ổn định của Ridge.
+\end{itemize}
+
+\subsubsection{Phân tích phần dư (Ridge — mô hình tuyến tính tốt nhất)}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig7_residual_plots.png}
+    \caption{Bộ 4 biểu đồ chẩn đoán phần dư của mô hình Ridge (mô hình tuyến tính
+             tốt nhất): Residuals vs Fitted, Normal Q-Q, Scale-Location,
+             Residual Distribution.}
+    \label{fig:residual_plots}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lp{5cm}p{6.5cm}}
+\toprule
+\textbf{Biểu đồ} & \textbf{Quan sát} & \textbf{Nhận xét} \\
+\midrule
+Residuals vs Fitted & Phân tán quanh 0, có hơi funnel nhỏ ở hai đầu & Quan hệ tuyến tính ổn; heteroscedasticity nhẹ do một số segment lương khó dự đoán \\
+Normal Q-Q Plot & Đuôi nặng ở cả hai đầu (heavy tails) & Không hoàn toàn normal; phổ biến với dữ liệu thu nhập. Với $n \approx 38\text{K}$, CLT đảm bảo inference vẫn hợp lệ \\
+Scale-Location & Đường xu hướng gần phẳng & Homoscedasticity chấp nhận được sau log-transform \\
+Histogram & Gần bell-shape, hơi lệch trái & Mô hình under-predict một số mức lương cao tuyệt đối \\
+\bottomrule
+\end{tabular}
+\caption{Nhận xét bộ 4 biểu đồ phân tích phần dư.}
+\end{table}
+
+\noindent\textbf{Lưu ý về Shapiro-Wilk:} Với $n \approx 38\text{K}$, test luôn reject
+$H_0$ — không có ý nghĩa thực tế. Quan sát Q-Q plot đáng tin cậy hơn.
+
+\subsubsection{Feature Importance}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/part2/fig8_feature_importance.png}
+    \caption{Top 20 features quan trọng nhất của mô hình Ridge (theo
+             $|\text{coefficient}|$ sau chuẩn hóa). Đỏ = Country, Xanh dương = Numeric,
+             Xanh lá = Other.}
+    \label{fig:feature_importance}
+\end{figure}
+
+\noindent\textbf{Top insights:}
+\begin{enumerate}
+    \item \textbf{Country} — yếu tố lớn nhất, vượt trội so với kinh nghiệm
+        (India, Brazil, Italy dẫn đầu về độ lớn hệ số âm/dương).
+    \item \textbf{YearsCodePro} — kinh nghiệm lập trình có ảnh hưởng đáng kể
+        (feature numeric quan trọng nhất).
+    \item \textbf{RemoteWork\_In-person} — hệ số âm: làm onsite thường thấp hơn
+        hybrid/remote (geographic arbitrage).
+    \item \textbf{ICorPM} — People Manager có lương cao hơn Individual Contributor.
+\end{enumerate}
+
+\noindent\textbf{Kết luận quan trọng:} \textit{``Bạn làm việc ở đâu quan trọng hơn
+bạn giỏi đến đâu''} — Country coefficients lớn hơn YearsCodePro đáng kể.
+
+% ----------------------------------------------------------
+\subsection{Unit Tests}
+
+30 unit tests được viết cho 6 hàm/class, so sánh kết quả với thư viện chuẩn:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{clll}
+\toprule
+\textbf{\#} & \textbf{Hàm} & \textbf{Thư viện đối chiếu} & \textbf{Số test} \\
+\midrule
+1 & \texttt{winsorize\_series} & \texttt{numpy.clip} & 5 \\
+2 & \texttt{log1p\_transform} & \texttt{numpy.log1p} & 5 \\
+3 & \texttt{ordinal\_encode} & \texttt{pandas.Series.map} & 5 \\
+4 & \texttt{compute\_metrics} & \texttt{sklearn.metrics} & 5 \\
+5 & \texttt{compute\_vif} & \texttt{statsmodels.variance\_inflation\_factor} & 5 \\
+6 & \texttt{DataPipeline} & sklearn API contract & 5 \\
+\midrule
+ & \textbf{Tổng} & & \textbf{30/30 PASSED} \\
+\bottomrule
+\end{tabular}
+\caption{Tổng hợp kết quả unit tests Phần 2.}
+\end{table}
+
+% ----------------------------------------------------------
+\subsection{Kết Luận}
+
+\subsubsection{Tóm tắt kết quả}
+
+\begin{itemize}
+    \item Mô hình tốt nhất: \textbf{Polynomial+Ridge} với $R^2 = 0.43$,
+        RMSE $= 0.909$ trên log-salary scale.
+    \item Mô hình tuyến tính tốt nhất: \textbf{Ridge/OLS Full} với $R^2 = 0.385$ —
+        regularization cải thiện nhưng không đột phá so với OLS trên dataset này.
+\end{itemize}
+
+\subsubsection{Bài học rút ra}
+
+\begin{enumerate}
+    \item \textbf{Preprocessing quan trọng hơn model choice} — Winsorize, log1p và
+        \texttt{DataPipeline} class ảnh hưởng đến kết quả nhiều hơn việc chọn Ridge hay Lasso.
+    \item \textbf{Geographic arbitrage là thực} — Country coefficient lớn nhất;
+        developer ở USA/Switzerland kiếm được nhiều hơn đáng kể so với cùng trình độ
+        ở nước khác.
+    \item \textbf{Polynomial features bắt được interaction effects thực sự} —
+        $R^2$ tăng 0.046 điểm; kinh nghiệm $\times$ quốc gia và các tương tác khác
+        có ý nghĩa thực tế.
+    \item \textbf{DataPipeline class là thiết kế đúng cho production} — tách
+        fit/transform ngăn data leakage, đảm bảo pipeline có thể tái dùng với dữ liệu mới.
+\end{enumerate}
+
+\subsubsection{Hướng mở rộng}
+
+\begin{itemize}
+    \item \textbf{XGBoost/LightGBM:} Xử lý missing values natively, bắt non-linear tốt
+        hơn, thường $R^2 \approx 0.55+$ trên bài toán tương tự.
+    \item \textbf{Target encoding cho Country:} Dùng mean salary theo quốc gia thay vì
+        one-hot $\to$ ít features hơn, nhiều thông tin hơn.
+    \item \textbf{Interaction features có chủ đích:} Thay vì polynomial degree=2
+        (tạo tất cả), chọn lọc: \texttt{YearsCodePro} $\times$ \texttt{Country},
+        \texttt{EdLevel} $\times$ \texttt{OrgSize}.
+\end{itemize}
+
+\subsubsection{Hạn chế}
+
+\begin{enumerate}
+    \item \textbf{Self-reported salary:} Giá trị \$74M có thể là lỗi nhập liệu.
+    \item \textbf{USA bias:} 21\% người trả lời từ Mỹ — model có xu hướng calibrate
+        theo mức lương Mỹ.
+    \item \textbf{Multi-select fields:} \texttt{DevType} chỉ dùng role đầu tiên,
+        bỏ qua các specialisation phụ.
+    \item \textbf{MNAR không giải được hoàn toàn:} 46\% bỏ qua lương —
+        không biết hướng bias.
+    \item \textbf{Temporal drift:} Data 2023 — cần retrain hàng năm.
+\end{enumerate}
+\pagebreak
