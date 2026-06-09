@@ -1,103 +1,162 @@
-# Part 2 — Data Fitting và OLS
+# Data Fitting và Phương Pháp OLS
 
-**Môn học:** Toán Ứng Dụng và Thống Kê  
-**Đề tài:** Phân tích và Dự đoán Lương Developer — Stack Overflow Survey 2023
+Đồ án 2 môn Toán Ứng Dụng và Thống Kê.
 
----
+Repo gồm 2 phần chính:
 
-## Cấu trúc thư mục
+- `part1`: trình bày lý thuyết, cài đặt OLS từ đầu và minh họa bằng dữ liệu giả lập.
+- `part2`: ứng dụng data fitting trên bộ dữ liệu Stack Overflow Developer Survey 2023 để dự đoán lương developer.
 
+## Cấu Trúc Thư Mục
+
+```text
+.
+|-- README.md
+|-- requirements.txt
+|-- data/
+|   `-- survey_results_public.csv
+|-- part1/
+|   |-- ols_implementation.py
+|   |-- ridge_lasso.py
+|   |-- residual_analysis.py
+|   |-- cross_validation.py
+|   |-- unit_test_1_4.py
+|   |-- unit_test_5_9.py
+|   `-- part1_notebook.ipynb
+|-- part2/
+|   |-- data_pipeline.py
+|   |-- model_comparison.py
+|   |-- advanced_methods.py
+|   |-- generate_figures.py
+|   |-- main.py
+|   `-- part2_notebook.ipynb
+`-- report/
+    |-- report.pdf
+    `-- report_overleaf/
+        |-- main.tex
+        |-- content/
+        `-- images/
 ```
-part2/
-├── README.md                    # File này
-├── requirements.txt             # Danh sách thư viện
-├── REPORT_PART2.md              # Báo cáo kỹ thuật đầy đủ
-├── CHECKLIST_PART2.md           # Đối chiếu yêu cầu đề bài
-│
-├── report/
-│   └── figures/                 # 9 biểu đồ PNG nhúng vào báo cáo
-│       ├── fig1_missing_rate.png
-│       ├── fig2_salary_transform.png
-│       ├── fig3_outlier_detection.png
-│       ├── fig4_correlation_heatmap.png
-│       ├── fig5_pipeline_diagram.png
-│       ├── fig6_model_comparison.png
-│       ├── fig7_residual_plots.png
-│       ├── fig8_feature_importance.png
-│       └── fig9_ridge_alpha_cv.png
-│
-├── data/
-│   └── survey_results_public.csv   # Stack Overflow Survey 2023
-│
-└── part2/                       # Source code
-    ├── data_pipeline.py         # class DataPipeline + build_pipeline()
-    ├── model_comparison.py      # OLS Full, OLS Selected, Ridge, Lasso
-    ├── advanced_methods.py      # Polynomial+Ridge, Bayesian Ridge (bonus)
-    ├── generate_figures.py      # Script tạo 9 biểu đồ cho báo cáo
-    ├── main.py                  # Entry point — chạy toàn bộ pipeline
-    └── part2_notebook.ipynb     # Jupyter notebook (13 sections)
-```
 
----
+## Cài Đặt Môi Trường
 
-## Cài đặt môi trường
+Yêu cầu Python 3.10 trở lên.
 
-```bash
-# Tạo virtual environment
+```powershell
 python -m venv .venv
-
-# Kích hoạt (Windows PowerShell)
-.venv\Scripts\Activate.ps1
-
-# Cài thư viện
-pip install -r requirements.txt
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
----
+Nếu PowerShell chặn activate script, chạy:
 
-## Chạy code
-
-```bash
-# Activate venv trước, sau đó:
-cd part2
-
-# Chạy toàn bộ pipeline (load → preprocess → train → evaluate)
-python main.py
-
-# Tạo lại các biểu đồ cho báo cáo
-python generate_figures.py
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
 ```
 
----
+## Dữ Liệu
 
-## Mô hình đã cài đặt
+Bộ dữ liệu dùng trong Part 2:
 
-| # | Mô hình | R² (test) | MAE |
-|---|---------|-----------|-----|
-| 1 | OLS Full (38 features) | ~0.410 | ~0.472 |
-| 2 | OLS Selected (p<0.05, VIF≤10) | ~0.409 | ~0.472 |
-| 3 | Ridge (α=0.6136, 5-fold CV) | ~0.410 | ~0.472 |
-| 4 | Lasso (α=0.001, 5-fold CV) | ~0.410 | ~0.472 |
-| 5 | Polynomial (d=2) + Ridge | **~0.431** | ~0.460 |
-| 6 | Bayesian Ridge | ~0.410 | ~0.473 |
+- Tên file: `data/survey_results_public.csv`
+- Nguồn: Stack Overflow Developer Survey 2023
+- Link: https://survey.stackoverflow.co/2023/
+- Kích thước gốc: 89,184 dòng x 84 cột
+- Biến mục tiêu: `ConvertedCompYearly`
 
----
+## Chạy Part 1
 
-## Dataset
+Chạy unit tests cho các nhóm hàm OLS, hat matrix, metrics, inference, VIF, Ridge, residual plots và k-fold CV:
 
-- **Nguồn:** Stack Overflow Developer Survey 2023  
-- **Link:** https://survey.stackoverflow.co/2023  
-- **Kích thước gốc:** 89,184 quan sát × 84 cột  
-- **Sau xử lý:** 48,019 hàng (sau drop NaN biến mục tiêu), 38,415 train / 9,604 test, 38 features
+```powershell
+python part1\unit_test_1_4.py
+python part1\unit_test_5_9.py
+```
 
----
+Mở notebook trình bày Part 1:
 
-## Yêu cầu kỹ thuật đã đáp ứng
+```powershell
+jupyter notebook part1\part1_notebook.ipynb
+```
 
-- [x] `class DataPipeline` với `fit()` / `transform()` API (không data leakage)
-- [x] So sánh ≥ 3 mô hình với bảng MAE, RMSE, R²
-- [x] 5-fold Cross-validation để chọn λ cho Ridge và Lasso
-- [x] Phân tích phần dư: 4 biểu đồ + Shapiro-Wilk test
-- [x] Biểu đồ feature importance (hệ số Ridge sau chuẩn hóa)
-- [x] 30 unit tests (5 tests × 6 hàm) — vượt yêu cầu 2 tests/hàm
-- [x] Kỹ thuật nâng cao: Polynomial Features + Bayesian Ridge (bonus +0.5đ)
+## Chạy Part 2
+
+Chạy riêng pipeline tiền xử lý:
+
+```powershell
+python part2\data_pipeline.py
+```
+
+Chạy toàn bộ pipeline Part 2, gồm load data, tiền xử lý, huấn luyện, đánh giá và advanced methods:
+
+```powershell
+python part2\main.py
+```
+
+Tạo lại các hình bằng script hiện có:
+
+```powershell
+python part2\generate_figures.py
+```
+
+Lưu ý: LaTeX trong `report/report_overleaf` đang include hình từ `report/report_overleaf/images/`. Nếu sinh lại hình bằng script, cần đảm bảo hình cuối cùng được đặt đúng thư mục mà file `.tex` đang tham chiếu.
+
+Mở notebook trình bày Part 2:
+
+```powershell
+jupyter notebook part2\part2_notebook.ipynb
+```
+
+## Các Hàm Chính
+
+Part 1:
+
+- `ols_fit(X, y)`: ước lượng hệ số OLS và phương sai nhiễu.
+- `hat_matrix(X)`: tính projection/hat matrix và kiểm tra tính idempotent.
+- `model_metrics(y, y_hat, p)`: tính RSS, TSS, R2, adjusted R2 và F-statistic.
+- `coef_inference(...)`: tính standard errors, t-statistics, p-values và confidence intervals.
+- `vif(X)`: tính Variance Inflation Factor.
+- `ridge_fit(X, y, lam)`: cài đặt Ridge Regression.
+- `residual_plots(X, y, beta_hat)`: vẽ các biểu đồ chẩn đoán phần dư.
+- `kfold_cv(X, y, k)`: cài đặt k-fold cross-validation.
+
+Part 2:
+
+- `DataPipeline`: xử lý missing values, encoding và standardization theo API `fit/transform`.
+- `model_comparison.py`: so sánh OLS Full, OLS Selected, Ridge và Lasso.
+- `advanced_methods.py`: Polynomial Features + Ridge và Bayesian Ridge.
+
+## Kết Quả Part 2 Theo Báo Cáo
+
+Metric được tính trên test set, với target ở thang `log1p(ConvertedCompYearly)`.
+
+| Hạng | Mô hình | MAE | RMSE | R2 |
+|---:|---|---:|---:|---:|
+| 1 | Polynomial + Ridge | 0.5003 | 0.9090 | 0.4309 |
+| 2 | OLS Full | 0.5378 | 0.9452 | 0.3847 |
+| 3 | Ridge | 0.5378 | 0.9452 | 0.3847 |
+| 4 | Bayesian Ridge | 0.5379 | 0.9452 | 0.3846 |
+| 5 | OLS Selected | 0.5389 | 0.9456 | 0.3842 |
+| 6 | Lasso | 0.5407 | 0.9467 | 0.3827 |
+
+## Báo Cáo
+
+File PDF nộp bài:
+
+```text
+report/report.pdf
+```
+
+Source LaTeX:
+
+```text
+report/report_overleaf/main.tex
+```
+
+## Ghi Chú Tái Lập Kết Quả
+
+- Train/test split dùng `random_state=42`.
+- Part 2 dùng dataset trong thư mục `data/`.
+- Cần cài đầy đủ dependencies trong `requirements.txt` trước khi chạy test hoặc notebook.
