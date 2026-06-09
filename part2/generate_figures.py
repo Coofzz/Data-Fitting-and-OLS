@@ -48,8 +48,9 @@ features = list(X_train.columns)
 print("Fig 1: Missing rate...")
 missing = df_raw.isnull().mean() * 100
 fig, ax = plt.subplots(figsize=(9, 4))
-colors = ['#e74c3c' if v >= 5 else '#3498db' for v in missing]
-missing.sort_values(ascending=False).plot(kind='bar', ax=ax, color=colors, edgecolor='black')
+missing_sorted = missing.sort_values(ascending=False)
+colors = ['#e74c3c' if v >= 5 else '#3498db' for v in missing_sorted]
+missing_sorted.plot(kind='bar', ax=ax, color=colors, edgecolor='black')
 ax.axhline(5, color='red', linestyle='--', linewidth=1.2, label='5% threshold')
 ax.set_title('Missing Rate by Column (%)\nRed bars = above 5% threshold')
 ax.set_ylabel('Missing (%)')
