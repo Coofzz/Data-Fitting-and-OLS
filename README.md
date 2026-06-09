@@ -67,6 +67,8 @@ Bộ dữ liệu dùng trong Part 2:
 - Kích thước gốc: 89,184 dòng x 84 cột
 - Biến mục tiêu: `ConvertedCompYearly`
 
+Lưu ý: file CSV gốc có dung lượng lớn nên không được đưa lên GitHub. Để chạy lại Part 2, cần tải bộ dữ liệu từ link trên, giải nén và đặt file `survey_results_public.csv` vào thư mục `data/`.
+
 ## Chạy Part 1
 
 Chạy unit tests cho các nhóm hàm OLS, hat matrix, metrics, inference, VIF, Ridge, residual plots và k-fold CV:
